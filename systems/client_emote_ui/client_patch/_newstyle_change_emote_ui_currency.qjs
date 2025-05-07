@@ -1,0 +1,58 @@
+//===== Warp Patch ===========================================
+//= Change Emote Currency ItemID Patch
+//===== By: ==================================================
+//= AcidMarco
+//===== Description: =========================================
+//= Allows changing the hardcoded currency item ID in the Emote UI.
+//===== Note: ================================================
+//= Presumably compatible with clients >= 2023-08-02
+//= Tested on client 2025-03-05
+//===== Setup: ===============================================
+//= 1. Place this file in the patcher script folder:
+//=    \Scripts\Patches\
+//= 2. Declare the patch name in the patcher config files:
+//=    \Tables\Patch.yml
+//=    \Patches\Data.yml
+//= 3. Update the item ID on the server side if validation logic depends on it.
+//===== Repo Link: ===========================================
+//= https://github.com/AcidMarco/ro-releases
+//= https://github.com/Neo-Mind/WARP [ Warp Patcher ]
+//============================================================
+
+NewstyleChangeEmoteCurrencyItemID = function(_) {
+	
+    $$( _, 1, `Ask the user for custom Item ID` );
+    const key = "EmoteCurrencyItemID0";
+    let itemID = CACHE.has(key) ? CACHE.get(key) : Exe.GetUserInput(
+        "$NewstyleEmoteItemID",
+        D_Uint32,
+        "Custom Item ID",
+        "Enter the item ID used as Emote currency",
+        6909,
+        { min: 1, max: 65535 }
+    );
+
+    if (itemID === false)
+        Cancel("User canceled item ID input", 6909);
+
+    $$( _, 2, `Save value to cache` );
+    CACHE.put(key, itemID);
+
+    $$( _, 3, `Find the hardcoded pattern and patch it` );
+    const sig = "C7 87 C8 01 00 00 FD 1A 00 00";
+    const addr = Exe.FindHex(sig);
+    if (addr < 0)
+        throw Error("Could not find Emote currency item ID pattern in client");
+
+    // Convert to little-endian 4-byte array
+    const b = [
+        itemID & 0xFF,
+        (itemID >> 8) & 0xFF,
+        (itemID >> 16) & 0xFF,
+        (itemID >> 24) & 0xFF
+    ];
+
+    Exe.SetBytes(addr + 6, b); // Overwrite FD 1A 00 00
+
+    return true;
+};

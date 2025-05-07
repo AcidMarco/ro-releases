@@ -1,0 +1,128 @@
+local defaultMotionNum = 5
+local defaultActFilePath = "emotion\\basic.act"
+local defaultSprFilePath = "emotion\\basic.spr"
+
+InsertEmotionListTable = function(in_pack, in_emotion, in_msgStrID, in_actionNum, in_motionNum, in_actFilePath, in_sprFilePath)
+	if in_pack < 0 or in_emotion < 1 then return end
+
+	local useMsgStrID = in_msgStrID or ""
+	local useMotionNum = in_motionNum or defaultMotionNum
+	local useActFilePath = in_actFilePath or defaultActFilePath
+	local useSprFilePath = in_sprFilePath or defaultSprFilePath
+
+	local emotionType = ConvertEmotionTypeForClient(in_emotion)
+	local ansiText = c_InsertEmotionListTable(in_pack, emotionType, useMsgStrID, in_actionNum, useMotionNum, useActFilePath, useSprFilePath)
+
+	if ansiText and ansiText ~= "" then
+		InsertEmotionMsgListTableAnsiText(in_pack, in_emotion, ansiText)
+	end
+end
+
+InsertEmotionMsgListTableAnsiText = function(in_pack, in_emotion, ...)
+	if in_pack < 0 or in_emotion < 1 then return end
+	in_emotion = ConvertEmotionTypeForClient(in_emotion)
+	c_InsertEmotionMsgListTable(in_pack, in_emotion, 1, select('#', ...), ...)
+end
+
+InsertEmotionMsgListTable = function(in_pack, in_emotion, ...)
+	if in_pack < 0 or in_emotion < 1 then return end
+	in_emotion = ConvertEmotionTypeForClient(in_emotion)
+	c_InsertEmotionMsgListTable(in_pack, in_emotion, 0, select('#', ...), ...)
+end
+
+InsertEmotionVarientListTable = function(in_pack, in_emotion, in_actionNum, in_motionNum, in_actFilePath, in_sprFilePath)
+	if in_pack < 0 or in_emotion < 1 then return end
+
+	local useMotionNum = in_motionNum or defaultMotionNum
+	local useActFilePath = in_actFilePath or defaultActFilePath
+	local useSprFilePath = in_sprFilePath or defaultSprFilePath
+
+	in_emotion = ConvertEmotionTypeForClient(in_emotion)
+	c_InsertEmotionVarientListTable(in_pack, in_emotion, in_actionNum, useMotionNum, useActFilePath, useSprFilePath)
+end
+
+InsertPackInfo2 = function(in_pack, in_msgStrID)
+	for _, v in pairs(EMOTION_PACK_INFO) do
+		if in_pack == v[1] then
+			c_InsertPackInfo(v[1], in_msgStrID, v[2], v[3], v[4], v[5], v[6], v[7], v[8], v[9])
+			break
+		end
+	end
+end
+
+InsertOrderList = function(in_pack, in_emotion)
+	if in_pack < 0 or in_emotion < 1 then return end
+	in_emotion = ConvertEmotionTypeForClient(in_emotion)
+	c_InsertOrderList(in_pack, in_emotion)
+end
+
+InsertEmotionEnum = function(in_strEnum, in_value)
+	local iEmotionType = ConvertEmotionTypeForClient(in_value)
+	c_InsertEmotionEnum(in_strEnum, iEmotionType)
+end
+
+InsertEmotionEnumHelper = function(in_tbl)
+	if not in_tbl then return end
+	for i = 1, #in_tbl do
+		InsertEmotionEnum(in_tbl[i], i)
+	end
+end
+
+InsertSequenceEmotion = function(in_pack, in_count, in_msgStrID, in_filePath, in_actionNum, in_motionNum)
+	in_actionNum = in_actionNum or 0
+	in_motionNum = in_motionNum or defaultMotionNum
+
+	local actPath, sprPath
+	if not in_filePath or in_filePath == "" then
+		actPath = defaultActFilePath
+		sprPath = defaultSprFilePath
+	else
+		actPath = in_filePath .. ".act"
+		sprPath = in_filePath .. ".spr"
+	end
+
+	for index = 0, in_count - 1 do
+		local msgID = in_msgStrID .. (index + 1)
+		local emotionType = EMOTION_TYPE.ET_CUSTOM_1 + index
+		InsertOrderList(in_pack, emotionType)
+		InsertEmotionListTable(in_pack, emotionType, msgID, in_actionNum + index, in_motionNum, actPath, sprPath)
+	end
+end
+
+InsertGroupEmotion = function(in_pack, in_filePath, ...)
+	local actPath, sprPath
+	if not in_filePath or in_filePath == "" then
+		actPath = defaultActFilePath
+		sprPath = defaultSprFilePath
+	else
+		actPath = in_filePath .. ".act"
+		sprPath = in_filePath .. ".spr"
+	end
+
+	local index = 1
+	local emotionType
+	for argIdx, value in ipairs({...}) do
+		if argIdx % 2 == 1 then
+			emotionType = value
+		else
+			InsertOrderList(in_pack, emotionType)
+			InsertEmotionVarientListTable(in_pack, emotionType, index - 1, value, actPath, sprPath)
+			index = index + 1
+		end
+	end
+end
+
+InsertEmotionGroupInfo = function(in_pack, in_emotionType)
+	in_emotionType = ConvertEmotionTypeForClient(in_emotionType)
+	c_InsertEmotionGroup(in_pack, in_emotionType)
+end
+
+ConvertEmotionTypeForClient = function(in_emotionType)
+	return in_emotionType - 1
+end
+
+InsertEmotionMsgListTableForCustom = function(in_pack, in_emotionType, in_basicPackEmotionType)
+	local emotionType = ConvertEmotionTypeForClient(in_emotionType)
+	local basicType = ConvertEmotionTypeForClient(in_basicPackEmotionType)
+	c_InsertEmotionMsgListTableForCustom(in_pack, emotionType, basicType)
+end
