@@ -1,0 +1,73 @@
+//===== Warp Patch ===========================================
+//= Ally Chat Symbol Customization
+//===== By: ==================================================
+//= AcidMarco
+//===== Description: =========================================
+//= Enables customization or complete removal of the symbol used to
+//= trigger the ally chat from the client's public chat input.
+//= By default, messages starting with '#' are sent to the ally chat.
+//= The patches allow you to:
+//= 1. Replace the default '#' symbol with one of the following: !, %, ^, &, *
+//= 2. Disable the symbol-based ally chat trigger entirely
+//===== Note: ================================================
+//= Presumably compatible with clients >= 2023-06-07
+//= Tested on client 2025-03-19
+//===== Setup: ===============================================
+//= 1. Place this file in your patcher script directory:
+//=    \Scripts\Patches\
+//= 2. Register the patch function names in:
+//=    \Tables\Patch.yml
+//=    \Patches\Data.yml
+//===== Patch Function Names: ================================
+//=    NewstyleChangeAllyChatSymbol
+//=    NewstyleDisableAllyChatSymbol
+//===== Repository Links: ====================================
+//= https://github.com/AcidMarco/ro-releases
+//= https://github.com/Neo-Mind/WARP [ Warp Patcher ]
+//============================================================
+
+function Hex(str) {
+    return str.trim().split(/\s+/).map(h => parseInt(h, 16));
+};
+
+NewstyleChangeAllyChatSymbol = function(_) {
+
+    let addr = Exe.FindHex("80 BD 84 FE FF FF 23", 0, Exe.FileSize);
+    if (addr < 0)
+        throw new Error("Pattern not found.");
+	
+	const varName = '$newAllyChatSymbol';
+	const sname = Exe.GetUserInput(
+		varName,
+		D_Choice,
+		"Choose Ally Chat Symbol",
+		"Select a symbol that players will type at the beginning of a message to send it to the ally chat instead of normal chat.",
+		"#",
+		{ choices: Object.getOwnPropertyNames(this.Data) }
+	);
+	
+	const byte = this.Data[sname].toString(16).padStart(2, '0');
+	Exe.SetBytes(addr, Hex("80 BD 84 FE FF FF " + byte));
+
+    return true;
+};
+
+NewstyleChangeAllyChatSymbol.Data = 
+{
+    "!": 0x21,
+    "%": 0x25,
+    "^": 0x5E,
+    "&": 0x26,
+    "*": 0x2A
+};
+
+NewstyleDisableAllyChatSymbol = function(_) {
+	
+    let addr = Exe.FindHex("80 bd 84 fe ff ff 23 89 85 fc f2 ff ff 75 37", 0, Exe.FileSize);
+    if (addr < 0)
+        throw new Error("Pattern not found.");
+	
+	Exe.SetBytes(addr, Hex("80 bd 84 fe ff ff 23 89 85 fc f2 ff ff EB 37"));
+
+	return true;
+}
